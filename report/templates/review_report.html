@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ガバナンス審査レポート - {{ document_name }}</title>
+  <style>
+    /* ── リセット & 基本 ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Meiryo", sans-serif;
+      color: #1f2937;
+      background: #f9fafb;
+      line-height: 1.7;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* ── ヘッダー ── */
+    .report-header {
+      text-align: center;
+      padding: 32px 0 24px;
+      border-bottom: 2px solid #e5e7eb;
+      margin-bottom: 32px;
+    }
+
+    .report-header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 12px;
+    }
+
+    .report-header .meta {
+      font-size: 0.9rem;
+      color: #6b7280;
+    }
+
+    .report-header .meta span {
+      margin: 0 12px;
+    }
+
+    /* ── サマリーカード ── */
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .summary-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px 16px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border-top: 4px solid #e5e7eb;
+    }
+
+    .summary-card.pass    { border-top-color: #16a34a; }
+    .summary-card.warning { border-top-color: #ca8a04; }
+    .summary-card.fail    { border-top-color: #dc2626; }
+    .summary-card.na      { border-top-color: #9ca3af; }
+    .summary-card.rate    { border-top-color: #2563eb; }
+
+    .summary-card .card-value {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .summary-card.pass    .card-value { color: #16a34a; }
+    .summary-card.warning .card-value { color: #ca8a04; }
+    .summary-card.fail    .card-value { color: #dc2626; }
+    .summary-card.na      .card-value { color: #9ca3af; }
+    .summary-card.rate    .card-value { color: #2563eb; }
+
+    .summary-card .card-label {
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+
+    /* ── テーブル共通 ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 32px;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    thead th {
+      background: #f3f4f6;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: #374151;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    tbody td {
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: top;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: #f9fafb;
+    }
+
+    /* ── 判定バッジ ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge-pass    { background: #dcfce7; color: #166534; }
+    .badge-warning { background: #fef9c3; color: #854d0e; }
+    .badge-fail    { background: #fee2e2; color: #991b1b; }
+    .badge-na      { background: #f3f4f6; color: #6b7280; }
+
+    /* ── 重要度バッジ ── */
+    .severity-high   { color: #dc2626; font-weight: 600; }
+    .severity-medium { color: #ca8a04; font-weight: 600; }
+    .severity-low    { color: #16a34a; font-weight: 600; }
+
+    /* ── セクション ── */
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #111827;
+      margin: 32px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .category-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #374151;
+      margin: 24px 0 12px;
+      padding-left: 8px;
+      border-left: 4px solid #6366f1;
+    }
+
+    /* ── 詳細折りたたみ ── */
+    .detail-item {
+      background: #fff;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+
+    .detail-item details {
+      padding: 0;
+    }
+
+    .detail-item summary {
+      padding: 14px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      list-style: none;
+      user-select: none;
+    }
+
+    .detail-item summary::-webkit-details-marker { display: none; }
+
+    .detail-item summary::before {
+      content: "\25B6";
+      font-size: 0.7rem;
+      color: #9ca3af;
+      transition: transform 0.15s ease;
+    }
+
+    .detail-item details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    .detail-item summary:hover {
+      background: #fafafa;
+    }
+
+    .detail-body {
+      padding: 0 16px 16px;
+      font-size: 0.9rem;
+    }
+
+    .detail-body .field {
+      margin-bottom: 12px;
+    }
+
+    .detail-body .field-label {
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 4px;
+    }
+
+    .detail-body blockquote {
+      margin: 4px 0;
+      padding: 10px 14px;
+      background: #f9fafb;
+      border-left: 3px solid #d1d5db;
+      color: #4b5563;
+      font-size: 0.88rem;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .detail-body .recommendation {
+      padding: 10px 14px;
+      background: #eff6ff;
+      border-radius: 6px;
+      color: #1e40af;
+      font-size: 0.88rem;
+    }
+
+    /* ── アクションアイテム ── */
+    .action-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .action-list li {
+      background: #fff;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .action-list li.action-fail {
+      border-left: 4px solid #dc2626;
+    }
+
+    .action-list li.action-warning {
+      border-left: 4px solid #ca8a04;
+    }
+
+    .action-list .action-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .action-list .action-rec {
+      font-size: 0.88rem;
+      color: #4b5563;
+    }
+
+    /* ── フッター ── */
+    .report-footer {
+      text-align: center;
+      padding: 24px 0;
+      margin-top: 40px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    /* ── 印刷対応 ── */
+    @media print {
+      body { background: #fff; padding: 0; }
+      .container { max-width: 100%; padding: 16px; }
+      .summary-card { box-shadow: none; border: 1px solid #e5e7eb; }
+      .detail-item { box-shadow: none; border: 1px solid #e5e7eb; }
+      .detail-item details { open: true; }
+      .detail-item details[open] { break-inside: avoid; }
+      table { box-shadow: none; border: 1px solid #e5e7eb; }
+      .action-list li { box-shadow: none; border: 1px solid #e5e7eb; }
+
+      /* 印刷時は折りたたみを展開 */
+      details { open: true !important; }
+      summary::before { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    {# ── ヘッダー ── #}
+    <header class="report-header">
+      <h1>ガバナンス審査レポート</h1>
+      <p class="meta">
+        <span>審査日時: {{ review_datetime }}</span>
+        <span>対象文書: {{ document_name }}</span>
+      </p>
+    </header>
+
+    {# ── サマリーカード ── #}
+    <div class="summary-cards">
+      <div class="summary-card rate">
+        <div class="card-value">{{ "%.1f"|format(stats.compliance_rate) }}%</div>
+        <div class="card-label">適合率（{{ stats.applicable }}件中）</div>
+      </div>
+      <div class="summary-card pass">
+        <div class="card-value">{{ stats.pass }}</div>
+        <div class="card-label">適合</div>
+      </div>
+      <div class="summary-card warning">
+        <div class="card-value">{{ stats.warning }}</div>
+        <div class="card-label">要確認</div>
+      </div>
+      <div class="summary-card fail">
+        <div class="card-value">{{ stats.fail }}</div>
+        <div class="card-label">不適合</div>
+      </div>
+      <div class="summary-card na">
+        <div class="card-value">{{ stats.na }}</div>
+        <div class="card-label">該当なし</div>
+      </div>
+    </div>
+
+    {# ── カテゴリ別サマリーテーブル ── #}
+    <h2 class="section-title">カテゴリ別サマリー</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>カテゴリ</th>
+          <th>観点数</th>
+          <th>適合</th>
+          <th>要確認</th>
+          <th>不適合</th>
+          <th>該当なし</th>
+          <th>適合率</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cs in category_stats %}
+        <tr>
+          <td>{{ cs.category }}</td>
+          <td>{{ cs.total }}</td>
+          <td>{{ cs.pass }}</td>
+          <td>{{ cs.warning }}</td>
+          <td>{{ cs.fail }}</td>
+          <td>{{ cs.na }}</td>
+          <td>{{ "%.1f"|format(cs.compliance_rate) }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# ── 詳細結果 ── #}
+    <h2 class="section-title">詳細結果</h2>
+
+    {% for category, items in grouped.items() %}
+    <h3 class="category-title">{{ category }}</h3>
+
+    {% for r in items %}
+    <div class="detail-item">
+      <details>
+        <summary>
+          <span class="badge badge-{{ r.judgment }}">{{ judgment_icon(r.judgment) }}</span>
+          <span>{{ r.criterion_name }}</span>
+          <span class="severity-{{ r.criterion_severity }}">{{ severity_label(r.criterion_severity) }}</span>
+        </summary>
+        <div class="detail-body">
+          {% if r.reason %}
+          <div class="field">
+            <div class="field-label">判定理由</div>
+            <p>{{ r.reason }}</p>
+          </div>
+          {% endif %}
+
+          {% if r.evidence %}
+          <div class="field">
+            <div class="field-label">引用箇所</div>
+            <blockquote>{{ r.evidence }}</blockquote>
+          </div>
+          {% endif %}
+
+          {% if r.recommendation %}
+          <div class="field">
+            <div class="field-label">改善提案</div>
+            <div class="recommendation">{{ r.recommendation }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+    {% endfor %}
+
+    {% endfor %}
+
+    {# ── アクションアイテム ── #}
+    {% if action_items %}
+    <h2 class="section-title">アクションアイテム</h2>
+    <p style="margin-bottom: 16px; color: #6b7280; font-size: 0.9rem;">
+      以下の項目は対応が必要です。不適合項目を優先して対応してください。
+    </p>
+    <ol class="action-list">
+      {% for r in action_items %}
+      <li class="action-{{ r.judgment }}">
+        <div class="action-title">
+          <span class="badge badge-{{ r.judgment }}">{{ judgment_icon(r.judgment) }}</span>
+          {{ r.criterion_name }}
+          <span class="severity-{{ r.criterion_severity }}">{{ severity_label(r.criterion_severity) }}</span>
+        </div>
+        {% if r.recommendation %}
+        <div class="action-rec">{{ r.recommendation }}</div>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+    {% endif %}
+
+    {# ── フッター ── #}
+    <footer class="report-footer">
+      <p>ガバナンス審査レポート | {{ review_datetime }} | 自動生成</p>
+    </footer>
+
+  </div>
+</body>
+</html>
